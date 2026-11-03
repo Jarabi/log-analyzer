@@ -1,10 +1,10 @@
-2026-11-03 17:36:56 ERROR [db] Query failed: relation does not exist
-2026-11-03 17:36:56 INFO [auth] New session created for user 260
-2026-11-03 17:36:56 INFO [payment] Payment 886 processed successfully
-2026-11-03 17:36:56 DEBUG [api] Rate limit counter for 2.56.93.107: 31
-2026-11-03 17:36:56 INFO [payment] Payment 362 processed successfully
-2026-11-03 17:36:56 INFO [api] GET login responded 200 in 20ms
-2026-11-03 17:36:56 INFO [payment] Payment 719 processed successfully
-2026-11-03 17:36:56 INFO [auth] Password reset requested for user 780
-2026-11-03 17:36:56 INFO [api] GET /orders responded 200 in 13ms
-2026-11-03 17:36:56 DEBUG [cache] Cache hit for key order:6137
+2026-10-31 19:53:03 INFO [auth] User 707 logged in
+2026-10-31 19:53:15 INFO [db] Connected to database
+2026-10-31 19:53:28 INFO [db] Connection pool size set to 63
+2026-10-31 19:53:53 DEBUG [server] Worker 286 picked up job in 15ms
+2026-10-31 19:54:14 DEBUG [cache] Cache miss for key order:5662
+2026-10-31 19:54:23 INFO [payment] Refund issued for order 733
+2026-10-31 19:54:31 INFO [payment] Payment 547 processed successfully
+2026-10-31 19:54:51 ERROR [cache] Failed to connect to cache server at 101.181.92.205
+2026-10-31 19:55:14 DEBUG [server] Worker 212 picked up job in 18ms
+2026-10-31 19:55:33 DEBUG [auth] Session lookup took 15ms

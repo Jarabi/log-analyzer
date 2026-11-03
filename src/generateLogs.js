@@ -1,11 +1,18 @@
 import fs from "node:fs";
+import { dirname } from 'node:path';
 
-const logEntries = process.argv[2];
+// ------- CLI -------
 
-if (!logEntries) {
-    console.error("Usage: node src/generateLogs.js <count>");
+const count = Number(process.argv[2]);
+const outputPath = process.argv[3] ?? 'sample/system.log';
+
+if (!Number.isInteger(count) || count <= 0) {
+    console.error('Usage: node src/generateLogs.js <number>');
     process.exit(1);
 }
+
+// ------- Data -------
+// Placeholders look like {name} or {name:min-max}
 
 const MESSAGES = {
     server: {
@@ -119,23 +126,61 @@ const MESSAGES = {
     },
 };
 
+// How often each level is picked. INFO is common, ERROR is rare
+const LEVEL_WEIGHTS = { DEBUG: 1, INFO: 4, WARN: 1, ERROR: 1 };
+
+const METHODS = ["GET", "POST", "PUT", "DELETE"];
+const PATHS = ["/users", "/orders", "/login"];
+
+// ------- Random helpers -------
+
 function generateRandom(min, max) {
-    const minCeil = Math.ceil(min);
-    const maxFloor = Math.floor(max);
-    return Math.floor(Math.random() * (maxFloor - minCeil + 1)) + minCeil;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function pickRandom(array) {
-    const index = Math.floor(Math.random() * array.length);
-    return array[index];
+    return array[Math.floor(Math.random() * array.length)];
 }
 
-function generateTimestamp() {
-    const today = new Date().toISOString().split('T');
-    const date = today[0];
-    const time = today[1].split('.')[0];
+// ------- Placeholder generators -------
 
-    return `${date} ${time}`;
+const GENERATORS = {
+    method: () => pickRandom(METHODS),
+    path: () => pickRandom(PATHS),
+    id: (min = 100, max = 999) => generateRandom(min, max),
+    ms: (min = 2, max = 30) => generateRandom(min, max),
+    port: (min = 1024, max = 999) => generateRandom(min, max),
+    percent: (min = 20, max = 60) => generateRandom(min, max),
+    count: (min = 20, max = 100) => generateRandom(min, max),
+    key: () => `order:${generateRandom(1000, 9999)}`,
+    ip: () =>
+        [
+            generateRandom(1, 126),
+            generateRandom(0, 255),
+            generateRandom(0, 255),
+            generateRandom(1, 254),
+        ].join('.'),
+};
+
+// Matches {name} and {name:min-max}
+const PLACEHOLDER = /\{(\w+)(?::(\d+)-(\d+))?\}/g;
+
+function fillTemplate(template) {
+    return template.replace(PLACEHOLDER, (_, name, min, max) => {
+        const generate = GENERATORS[name];
+        if (!generate) {
+            throw new Error(`Unknown placeholder: {${name}}`);
+        }
+        const range = min === undefined ? [] : [Number(min), Number(max)];
+        return String(generate(...range));
+    });
+}
+
+// ------- Log line pieces -------
+
+function formatTimestamp(ms) {
+    // "2026-11-02T14:03:21.000Z" -> "2026-11-02 14:03:21" (UTC)
+    return new Date(ms).toISOString().replace('T', ' ').slice(0, 19);
 }
 
 function generateSource() {
@@ -143,66 +188,42 @@ function generateSource() {
 }
 
 function generateLevel(source) {
-    let level = pickRandom([
-        'INFO',
-        'DEBUG',
-        'INFO',
-        'WARN',
-        'INFO',
-        'ERROR',
-        'INFO',
-    ]);
-
-    return MESSAGES[source][level] ? level : 'INFO';
+    // Only choose from levels this source actually has, weighted
+    const weighted = Object.keys(MESSAGES[source]).flatMap((level) =>
+        Array(LEVEL_WEIGHTS[level]).fill(level),
+    );
+    return pickRandom(weighted);
 }
 
-function formatMessage(source, level) {
-    const paths = ['/users', '/orders', 'login'];
-    const methods = ['GET', 'POST', 'PUT', 'DELETE'];
-    const pctLimits = source === 'server' ? [60, 99] : [20, 60];
-    const msLimits = ['ERROR', 'WARN'].includes(level) ? [100, 500] : [2, 30];
-
-    let message = pickRandom(MESSAGES[source][level]);
-
-    message = message.replace(/\{path\}/g, pickRandom(paths));
-    message = message.replace(/\{method\}/g, pickRandom(methods));
-    message = message.replace(/\{id\}/g, generateRandom(100, 1000));
-    message = message.replace(/\{ms\}/g, generateRandom(msLimits[0], msLimits[1]));
-    message = message.replace(/\{port\}/g, generateRandom(100, 10000));
-    message = message.replace(/\{percent\}/g, generateRandom(pctLimits[0], pctLimits[1]));
-    message = message.replace(/\{count\}/g, generateRandom(20, 100));
-    message = message.replace(/\{key\}/g, `order:${generateRandom(1000, 9999)}`);
-    if (message.includes("{ip}")) {
-        const oct1 = generateRandom(1, 126);
-        const oct2 = generateRandom(0, 255);
-        const oct3 = generateRandom(0, 255);
-        const oct4 = generateRandom(1, 254);
-        message = message.replace(/\{ip\}/g, `${oct1}.${oct2}.${oct3}.${oct4}`);
-    }
-    return message;
+function generateMessage(source, level) {
+    return fillTemplate(pickRandom(MESSAGES[source][level]));
 }
+
+// ------- Main -------
 
 function main() {
-    const logs = [];
-    
-    for (let i = 0; i < logEntries; i++) {
-        const timestamp = generateTimestamp();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    let time = Date.now() - 3 * DAY_MS;
+    const lines = [];
+
+    for (let i = 0; i < count; i++) {
+        time += generateRandom(0, 25) * 1000;
+
         const source = generateSource();
         const level = generateLevel(source);
-        const message = formatMessage(source, level);
-    
-        logs.push(`${timestamp} ${level} [${source}] ${message}`);
+        const message = generateMessage(source, level);
+
+        lines.push(`${formatTimestamp(time)} ${level} [${source}] ${message}`);
     }
 
-    // Write to file
-    try {
-        const data = logs.join('\n');
-
-        fs.writeFileSync('sample/system.log', data, 'utf-8');
-        console.log('Logs written successfully.')
-    } catch(err) {
-        console.error('Error writing to file:', err);
-    }
+    fs.mkdirSync(dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, lines.join('\n') + '\n', 'utf-8');
+    console.log(`Wrote ${count} log lines to ${outputPath}`);
 }
 
-main();
+try {
+    main();
+} catch (err) {
+    console.error('Error writing to file:', err);
+    process.exit(1);
+}
