@@ -1,0 +1,10 @@
+2026-11-03 17:36:56 ERROR [db] Query failed: relation does not exist
+2026-11-03 17:36:56 INFO [auth] New session created for user 260
+2026-11-03 17:36:56 INFO [payment] Payment 886 processed successfully
+2026-11-03 17:36:56 DEBUG [api] Rate limit counter for 2.56.93.107: 31
+2026-11-03 17:36:56 INFO [payment] Payment 362 processed successfully
+2026-11-03 17:36:56 INFO [api] GET login responded 200 in 20ms
+2026-11-03 17:36:56 INFO [payment] Payment 719 processed successfully
+2026-11-03 17:36:56 INFO [auth] Password reset requested for user 780
+2026-11-03 17:36:56 INFO [api] GET /orders responded 200 in 13ms
+2026-11-03 17:36:56 DEBUG [cache] Cache hit for key order:6137

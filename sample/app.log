@@ -1,0 +1,6 @@
+2026-11-02 14:03:15 INFO [server] Server started on port 3000
+2026-11-02 14:03:21 ERROR [auth] Login failed for user 42
+2026-11-02 14:03:22 WARN [db] Slow query took 2300ms
+2026-11-02 14:03:25 INFO [auth] User 17 logged in
+2026-11-02 14:03:30 ERROR [db] Connection timeout after 5000ms
+2026-11-02 14:03:31 DEBUG [cache] Cache miss for key session:17

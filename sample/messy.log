@@ -1,0 +1,4 @@
+2026-11-02 14:03:15 INFO [server] Server started
+
+this line is garbage
+2026-11-02 14:03:21 ERROR [auth] Login failed for user 42
