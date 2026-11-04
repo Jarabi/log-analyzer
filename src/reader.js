@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import readline from "node:readline";
 import { parseLine } from "./parser.js";
+import { categorize } from './categorizer.js';
 
 export async function readLogFile(filePath) {
     const entries = [];
@@ -16,7 +17,7 @@ export async function readLogFile(filePath) {
 
         const entry = parseLine(line);
         if (entry) {
-            entries.push(entry);
+            entries.push({ ...entry, category: categorize(entry) });
         } else {
             skipped++;
         }

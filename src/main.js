@@ -8,6 +8,11 @@ if (!filePath) {
 }
 
 const { entries, skipped } = await readLogFile(filePath);
+const counts = {};
+
+for (const entry of entries) {
+    counts[entry.category] = (counts[entry.category] ?? 0) + 1;
+}
 
 console.log(`Parsed ${entries.length} entries, skipped ${skipped} lines`);
-console.log(entries.slice(0, 3));
+console.table(counts);
