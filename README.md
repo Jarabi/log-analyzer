@@ -1,119 +1,122 @@
 # Log Analyzer
 
-A small Node.js project for parsing and inspecting application logs from plain text files. It reads log entries, validates them against a supported format, ignores blank lines, and reports how many lines were skipped because they were malformed.
+A Node.js command-line tool for parsing application logs, categorizing entries, storing them in SQLite, and searching or summarizing the imported data.
 
-## What it does
+## Features
 
-- Parses log lines in the format:
-  `YYYY-MM-DD HH:mm:ss LEVEL [source] message`
-- Ignores empty lines
-- Skips malformed records without crashing
-- Prints the parsed entries and the number of skipped lines
-- Includes sample logs and tests for parser behavior
+- Parses log lines in the format `YYYY-MM-DD HH:mm:ss LEVEL [source] message`
+- Ignores blank lines and counts malformed non-empty lines
+- Categorizes parsed entries as `payment`, `network`, `database`, `cache`, `performance`, `http`, `auth`, `system`, or `uncategorized`
+- Stores entries in a local SQLite database
+- Shows totals by log level and category
+- Searches log messages with optional level, source, category, and date filters
 
-Example valid line:
+## Requirements
 
-```text
-2026-11-02 14:03:21 ERROR [auth] Login failed for user 42
-```
-
-## Project structure
-
-```text
-.
-├── README.md
-├── package.json
-├── sample/
-│   ├── app.log
-│   ├── messy.log
-│   └── system.log
-├── src/
-│   ├── generateLogs.js
-│   ├── main.js
-│   ├── parser.js
-│   └── reader.js
-└── test/
-    ├── parser.test.js
-    └── reader.test.js
-```
-
-## Getting started
-
-### Prerequisites
-
-- Node.js 18 or later
+- Node.js 22.12 or later
 - npm
 
-### Install dependencies
+## Install
 
 ```bash
 npm install
 ```
 
-## Usage
+## CLI usage
 
-Run the analyzer against a log file:
+Run the CLI with Node:
 
 ```bash
-node src/main.js sample/app.log
+node src/cli.js <command>
 ```
 
-Example output:
+### Import a log file
 
-```text
-Parsed 6 entries, skipped 0 lines
-[
-  {
-    timestamp: '2026-11-02 14:03:15',
-    level: 'INFO',
-    source: 'server',
-    message: 'Server started on port 3000'
-  },
-  ...
-]
+```bash
+node src/cli.js import sample/app.log
 ```
 
-## Supported log format
+The command parses the file and reports how many entries were imported and how many lines were skipped. **Import replaces all existing entries** in the database; it does not append to them.
 
-The parser accepts lines that match this pattern:
+### Show statistics
+
+```bash
+node src/cli.js stats
+```
+
+Displays the total number of entries and counts grouped by level and category.
+
+### Search entries
+
+Search messages by a term:
+
+```bash
+node src/cli.js search timeout
+```
+
+Apply optional filters together:
+
+```bash
+node src/cli.js search --level ERROR --source api --category network \
+  --since "2026-11-02 14:00" --until 2026-11-03 --limit 10
+```
+
+Search options:
+
+| Option | Description |
+| --- | --- |
+| `-l, --level <level>` | Filter by `DEBUG`, `INFO`, `WARN`, or `ERROR` |
+| `-s, --source <source>` | Match a source exactly, such as `auth`, `db`, or `api` |
+| `-c, --category <category>` | Match a category exactly |
+| `-d, --since <date>` | Inclusive lower timestamp bound |
+| `-u, --until <date>` | Exclusive upper timestamp bound |
+| `-n, --limit <number>` | Maximum results to display; defaults to `20` |
+
+The search term is optional; without it, the other filters (or no filters) can be used to list entries. Date filters accept `YYYY-MM-DD`, `YYYY-MM-DD HH:mm`, or `YYYY-MM-DD HH:mm:ss`. Results are shown newest first. For an inclusive full-day range, use the day after the desired end date as `--until`.
+
+Use `node src/cli.js --help` or `node src/cli.js <command> --help` for CLI help.
+
+## Log format
+
+Each non-empty line must match:
 
 ```text
 <timestamp> <LEVEL> [<source>] <message>
 ```
 
-Where:
+For example:
 
-- `timestamp` must be in `YYYY-MM-DD HH:mm:ss` format
-- `LEVEL` is one of `DEBUG`, `INFO`, `WARN`, or `ERROR`
-- `source` is a bracketed value such as `auth`, `db`, `server`, or `api`
-- `message` is the remaining text after the source field
+```text
+2026-11-02 14:03:21 ERROR [auth] Login failed for user 42
+```
 
-## Generating sample logs
+The timestamp must use `YYYY-MM-DD HH:mm:ss`; supported levels are `DEBUG`, `INFO`, `WARN`, and `ERROR`. The source is any non-empty value inside square brackets. The message may contain any remaining text. Non-matching lines are skipped.
 
-The project includes a utility that creates random log data:
+## Database
+
+The CLI creates `logs.db` in the current working directory when needed. Imported rows include the timestamp, level, source, category, and message. To use a different database location, run the CLI from the directory where you want `logs.db` created.
+
+## Sample logs
+
+The `sample/` directory contains `app.log`, `big.log`, `messy.log`, and `system.log`. For example:
+
+```bash
+node src/cli.js import sample/messy.log
+node src/cli.js stats
+```
+
+## Generate sample logs
+
+Generate a specified number of random entries in `sample/system.log`:
 
 ```bash
 node src/generateLogs.js 50
 ```
 
-This writes output to `sample/system.log`.
-
-## Testing
+## Tests
 
 Run the test suite with:
 
 ```bash
 npm test
 ```
-
-The tests cover:
-
-- valid log parsing
-- malformed line rejection
-- skipping bad lines while keeping valid entries
-
-## Notes
-
-- Blank lines are ignored automatically.
-- Malformed lines are counted via the `skipped` value returned by `readLogFile()`.
-- The main entry point is designed to work as a simple log parser CLI.
