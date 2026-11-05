@@ -120,6 +120,7 @@ const MESSAGES = {
         ],
         ERROR: [
             'Payment gateway timeout after {ms}ms',
+            'Insufficient funds',
             'Payment {id} failed: insufficient funds',
             'Duplicate transaction detected for order {id}',
         ],
